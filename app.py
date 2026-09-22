@@ -18,10 +18,36 @@ def load_data():
 
 df_trazabilidad = load_data()
 
+# =============================================================================
+# 2. FUNCIÓN AISLADA PARA RENDERIZAR HTML (Evita errores de Markdown)
+# =============================================================================
+def renderizar_tabla_html(df_filtrado):
+    # Se construye el HTML en una sola cadena continua para que Streamlit no detecte espacios de bloque de código
+    html = "<style>"
+    html += ".bitacora-table { width: 100%; border-collapse: collapse; font-family: 'Segoe UI', Arial, sans-serif; background-color: white; border: 1px solid #e0e0e0; }"
+    html += ".bitacora-table th { background-color: #34495e; color: white; text-align: left; padding: 12px; font-size: 14px; }"
+    html += ".bitacora-table td { border-bottom: 1px solid #e0e0e0; padding: 12px; font-size: 13px; color: #2c3e50; vertical-align: top; }"
+    html += ".bitacora-table tr:hover { background-color: #f8f9fa; }"
+    html += "</style>"
+    html += "<table class='bitacora-table'><thead><tr>"
+    html += "<th>Mes</th><th>Costo Adquisición</th><th>Precio Histórico (Cobrado)</th>"
+    html += "<th>Precio Óptimo (Solufar)</th><th>Margen Proyectado</th><th>Diagnóstico de Capas (Algoritmo)</th>"
+    html += "</tr></thead><tbody>"
+
+    for _, row in df_filtrado.iterrows():
+        explicacion = row['Explicacion_Dinamica'] if pd.notna(row['Explicacion_Dinamica']) else "Sin datos"
+        html += f"<tr><td>{row['Mes_Str']}</td><td>${row['Costo_Unitario']:,.0f}</td><td>${row['Precio_Unitario']:,.0f}</td><td style='color: #2E86C1; font-weight: bold;'>${row['Precio_Solufar_Emitido']:,.0f}</td><td>{row['Margen_Pct_Final']:.1f}%</td><td>{explicacion}</td></tr>"
+
+    html += "</tbody></table>"
+    return html
+
+# =============================================================================
+# 3. INTERFAZ DE USUARIO PRINCIPAL
+# =============================================================================
 st.title("📊 Gemelo Digital Solufar: Pricing Inteligente")
 st.markdown("Plataforma de auditoría basada en un motor de 4 Expertos orquestados y leyes de blindaje.")
 
-# Creamos las dos pestañas de navegación
+# Creamos las dos pestañas de navegación superior
 tab1, tab2 = st.tabs(["🌎 Resumen Ejecutivo Global", "🔍 Auditoría Detallada por SKU"])
 
 # =============================================================================
@@ -144,26 +170,10 @@ with tab2:
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # BITÁCORA HTML
+    # BITÁCORA HTML RENDERIZADA CON LA FUNCIÓN SEGURA
     st.markdown("### 📝 Bitácora de Decisiones Algorítmicas")
     df_filtrado['Mes_Str'] = pd.to_datetime(df_filtrado['Mes_Ano']).dt.strftime('%Y-%m')
-
-    tabla_html = """<style>
-    .bitacora-table { width: 100%; border-collapse: collapse; font-family: 'Segoe UI', Arial, sans-serif; background-color: white; border: 1px solid #e0e0e0; }
-    .bitacora-table th { background-color: #34495e; color: white; text-align: left; padding: 12px; font-size: 14px; }
-    .bitacora-table td { border-bottom: 1px solid #e0e0e0; padding: 12px; font-size: 13px; color: #2c3e50; vertical-align: top; }
-    .bitacora-table tr:hover { background-color: #f8f9fa; }
-    </style>
-    <table class="bitacora-table">
-    <thead>
-    <tr><th>Mes</th><th>Costo Adquisición</th><th>Precio Histórico (Cobrado)</th><th>Precio Óptimo (Solufar)</th><th>Margen Proyectado</th><th>Diagnóstico de Capas (Algoritmo)</th></tr>
-    </thead>
-    <tbody>"""
-
-    for _, row in df_filtrado.iterrows():
-        explicacion = row['Explicacion_Dinamica'] if pd.notna(row['Explicacion_Dinamica']) else "Sin datos"
-        fila = f"<tr><td>{row['Mes_Str']}</td><td>${row['Costo_Unitario']:,.0f}</td><td>${row['Precio_Unitario']:,.0f}</td><td style='color: #2E86C1; font-weight: bold;'>${row['Precio_Solufar_Emitido']:,.0f}</td><td>{row['Margen_Pct_Final']:.1f}%</td><td>{explicacion}</td></tr>"
-        tabla_html += fila
-
-    tabla_html += "</tbody></table>"
-    st.markdown(tabla_html, unsafe_allow_html=True)
+    
+    # Llamamos a la función aislada que no se ve afectada por la indentación del bloque 'with'
+    tabla_html_segura = renderizar_tabla_html(df_filtrado)
+    st.markdown(tabla_html_segura, unsafe_allow_html=True)
