@@ -66,9 +66,8 @@ st.markdown("### 📝 Bitácora de Decisiones Algorítmicas")
 # Formatear la fecha para que solo muestre Año-Mes
 df_filtrado['Mes_Str'] = pd.to_datetime(df_filtrado['Mes_Ano']).dt.strftime('%Y-%m')
 
-# Construcción de la tabla con CSS idéntico a tu referencia visual
-tabla_html = """
-<style>
+# Construcción de la tabla (sin sangrías problemáticas para Markdown)
+tabla_html = """<style>
 .bitacora-table {
     width: 100%;
     border-collapse: collapse;
@@ -95,34 +94,24 @@ tabla_html = """
 }
 </style>
 <table class="bitacora-table">
-    <thead>
-        <tr>
-            <th>Mes</th>
-            <th>Costo Adquisición</th>
-            <th>Precio Histórico (Cobrado)</th>
-            <th>Precio Óptimo (Solufar)</th>
-            <th>Margen Proyectado</th>
-            <th>Diagnóstico de Capas (Algoritmo)</th>
-        </tr>
-    </thead>
-    <tbody>
-"""
+<thead>
+<tr>
+<th>Mes</th>
+<th>Costo Adquisición</th>
+<th>Precio Histórico (Cobrado)</th>
+<th>Precio Óptimo (Solufar)</th>
+<th>Margen Proyectado</th>
+<th>Diagnóstico de Capas (Algoritmo)</th>
+</tr>
+</thead>
+<tbody>"""
 
-# Iterar sobre las filas para llenar la tabla
+# Iterar sobre las filas estructurando el HTML en una sola línea continua para evitar el parseo de código
 for _, row in df_filtrado.iterrows():
-    # Evitar errores si alguna explicación viene nula
     explicacion = row['Explicacion_Dinamica'] if pd.notna(row['Explicacion_Dinamica']) else "Sin datos"
     
-    tabla_html += f"""
-        <tr>
-            <td>{row['Mes_Str']}</td>
-            <td>${row['Costo_Unitario']:,.0f}</td>
-            <td>${row['Precio_Unitario']:,.0f}</td>
-            <td style="color: #2E86C1; font-weight: bold;">${row['Precio_Solufar_Emitido']:,.0f}</td>
-            <td>{row['Margen_Pct_Final']:.1f}%</td>
-            <td>{explicacion}</td>
-        </tr>
-    """
+    fila = f"<tr><td>{row['Mes_Str']}</td><td>${row['Costo_Unitario']:,.0f}</td><td>${row['Precio_Unitario']:,.0f}</td><td style='color: #2E86C1; font-weight: bold;'>${row['Precio_Solufar_Emitido']:,.0f}</td><td>{row['Margen_Pct_Final']:.1f}%</td><td>{explicacion}</td></tr>"
+    tabla_html += fila
 
 tabla_html += "</tbody></table>"
 
