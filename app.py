@@ -173,7 +173,10 @@ with tab2:
     ), secondary_y=False)
 
     fig.update_layout(
-        title=f"<b>Auditoría Algorítmica: {sku_seleccionado}</b>", hovermode="x unified", plot_bgcolor="white", 
+        title=f"<b>Auditoría Algorítmica: {sku_seleccionado}</b>",
+        hovermode="x unified",
+        plot_bgcolor="white",
+        height=850,  # <--- Agrega esta línea para duplicar la altura y descomprimir el eje Y
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
     fig.update_yaxes(title_text="<b>Precio ($ CLP)</b>", tickformat="$,.0f", secondary_y=False, gridcolor='lightgray')
