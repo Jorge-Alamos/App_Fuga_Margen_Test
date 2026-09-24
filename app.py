@@ -7,6 +7,32 @@ import numpy as np
 # Configuración de página
 st.set_page_config(page_title="Empiria | Gemelo Digital de Pricing", layout="wide", page_icon="💊")
 
+# Inyección de estilos globales para legibilidad general en métricas y tablas
+st.markdown(
+    """
+    <style>
+    /* Aumento de tamaño en títulos y subtítulos */
+    h1 { font-size: 28px !important; }
+    h2 { font-size: 22px !important; }
+    h3 { font-size: 19px !important; }
+    
+    /* Aumento de tamaño de métricas */
+    [data-testid="stMetricValue"] {
+        font-size: 26px !important;
+        font-weight: 700 !important;
+    }
+    [data-testid="stMetricLabel"] {
+        font-size: 14px !important;
+        font-weight: 600 !important;
+    }
+    [data-testid="stMetricDelta"] {
+        font-size: 13px !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # =============================================================================
 # 1. CARGA LIGERA DE DATOS
 # =============================================================================
@@ -181,20 +207,47 @@ with tab2:
         hovertemplate="Costo: $%{y:,.0f}<extra></extra>"
     ), secondary_y=False)
 
+    # Configuración de diseño con tipografías ampliadas y altura de 850px
     fig.update_layout(
-        title=f"<b>Auditoría Algorítmica: {sku_seleccionado}</b>", 
-        hovermode="x unified", 
+        title=dict(text=f"<b>Auditoría Algorítmica: {sku_seleccionado}</b>", font=dict(size=20)),
+        hovermode="x unified",
         plot_bgcolor="white",
-        height=850,  # <-- Altura duplicada para máxima legibilidad vertical
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        height=850,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            font=dict(size=14)
+        ),
+        hoverlabel=dict(
+            font_size=14,
+            font_family="Segoe UI, Arial, sans-serif"
+        )
     )
-    fig.update_yaxes(title_text="<b>Precio ($ CLP)</b>", tickformat="$,.0f", secondary_y=False, gridcolor='lightgray')
-    fig.update_yaxes(title_text="<b>Volumen (Cajas)</b>", secondary_y=True, showgrid=False)
-    fig.update_xaxes(title_text="<b>Mes</b>", tickangle=-45)
+    fig.update_yaxes(
+        title=dict(text="<b>Precio ($ CLP)</b>", font=dict(size=16)),
+        tickformat="$,.0f",
+        tickfont=dict(size=13),
+        secondary_y=False,
+        gridcolor='lightgray'
+    )
+    fig.update_yaxes(
+        title=dict(text="<b>Volumen (Cajas)</b>", font=dict(size=16)),
+        tickfont=dict(size=13),
+        secondary_y=True,
+        showgrid=False
+    )
+    fig.update_xaxes(
+        title=dict(text="<b>Mes</b>", font=dict(size=16)),
+        tickangle=-45,
+        tickfont=dict(size=13)
+    )
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # BITÁCORA HTML RENDERIZADA
+    # BITÁCORA HTML RENDERIZADA CON TIPOGRAFÍA ESCALADA
     st.markdown("### 📝 Bitácora de Decisiones Algorítmicas")
     df_filtrado['Mes_Str'] = pd.to_datetime(df_filtrado['Mes_Ano']).dt.strftime('%Y-%m')
     
