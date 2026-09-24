@@ -5,7 +5,7 @@ from plotly.subplots import make_subplots
 import numpy as np
 
 # Configuración de página
-st.set_page_config(page_title="Gemelo Digital Solufar", layout="wide", page_icon="💊")
+st.set_page_config(page_title="Empiria | Gemelo Digital de Pricing", layout="wide", page_icon="💊")
 
 # =============================================================================
 # 1. CARGA LIGERA DE DATOS
@@ -30,7 +30,7 @@ def renderizar_tabla_html(df_filtrado):
     html += "</style>"
     html += "<table class='bitacora-table'><thead><tr>"
     html += "<th>Mes</th><th>Costo Adquisición</th><th>Precio Histórico (Cobrado)</th>"
-    html += "<th>Precio Óptimo (Solufar)</th><th>Margen Proyectado</th><th>Diagnóstico de Capas (Algoritmo)</th>"
+    html += "<th>Precio Óptimo Sugerido</th><th>Margen Proyectado</th><th>Diagnóstico de Capas (Algoritmo)</th>"
     html += "</tr></thead><tbody>"
 
     for _, row in df_filtrado.iterrows():
@@ -43,10 +43,10 @@ def renderizar_tabla_html(df_filtrado):
 # =============================================================================
 # 3. INTERFAZ DE USUARIO PRINCIPAL
 # =============================================================================
-st.title("📊 Gemelo Digital Solufar: Pricing Inteligente")
+st.title("📊 Empiria: Gemelo Digital de Pricing")
 st.markdown("Plataforma de auditoría basada en un motor de 5 Expertos orquestados y leyes de blindaje.")
 
-# Creamos las dos pestañas de navegación superior
+# Pestañas de navegación superior
 tab1, tab2 = st.tabs(["🌎 Resumen Ejecutivo Global", "🔍 Auditoría Detallada por SKU"])
 
 # =============================================================================
@@ -59,21 +59,21 @@ with tab1:
     df_calc = df_trazabilidad.dropna(subset=['Mes_Ano', 'Ctdad_Ordenada', 'Precio_Unitario', 'Costo_Unitario', 'Precio_Solufar_Emitido']).copy()
     df_calc['Mes_Ano'] = pd.to_datetime(df_calc['Mes_Ano'])
     
-    # 🔴 1. MÉTRICAS FINANCIERAS BIFURCADAS (NUEVO)
+    # 1. MÉTRICAS FINANCIERAS BIFURCADAS
     ingresos_reales = (df_calc['Precio_Unitario'] * df_calc['Ctdad_Ordenada']).sum()
-    ingresos_solufar = (df_calc['Precio_Solufar_Emitido'] * df_calc['Ctdad_Ordenada']).sum()
+    ingresos_optimos = (df_calc['Precio_Solufar_Emitido'] * df_calc['Ctdad_Ordenada']).sum()
     
-    # A) Fuga Identificada (Solufar > Histórico)
+    # A) Fuga Identificada (Precio Óptimo > Histórico)
     df_calc['Brecha_Positiva'] = (df_calc['Precio_Solufar_Emitido'] - df_calc['Precio_Unitario']).clip(lower=0)
     df_calc['Fuga_Valor'] = df_calc['Brecha_Positiva'] * df_calc['Ctdad_Ordenada']
     fuga_total = df_calc['Fuga_Valor'].sum()
     
-    # B) Pérdida de Oportunidad (Solufar < Histórico)
+    # B) Pérdida de Oportunidad (Precio Óptimo < Histórico)
     df_calc['Brecha_Negativa'] = (df_calc['Precio_Unitario'] - df_calc['Precio_Solufar_Emitido']).clip(lower=0)
     df_calc['Perdida_Oportunidad'] = df_calc['Brecha_Negativa'] * df_calc['Ctdad_Ordenada']
     perdida_total = df_calc['Perdida_Oportunidad'].sum()
     
-    upside_pct = ((ingresos_solufar - ingresos_reales) / ingresos_reales) * 100 if ingresos_reales > 0 else 0.0
+    upside_pct = ((ingresos_optimos - ingresos_reales) / ingresos_reales) * 100 if ingresos_reales > 0 else 0.0
 
     cantidad_skus = df_calc['Nombre_Producto'].nunique()
     meses_totales = df_calc['Mes_Ano'].nunique()
@@ -86,18 +86,18 @@ with tab1:
 
     costo_total_vendido = (df_calc['Costo_Unitario'] * df_calc['Ctdad_Ordenada']).sum()
     margen_real_pct = ((ingresos_reales - costo_total_vendido) / ingresos_reales) * 100 if ingresos_reales > 0 else 0
-    margen_solufar_pct = ((ingresos_solufar - costo_total_vendido) / ingresos_solufar) * 100 if ingresos_solufar > 0 else 0
+    margen_optimo_pct = ((ingresos_optimos - costo_total_vendido) / ingresos_optimos) * 100 if ingresos_optimos > 0 else 0
 
-    # 🔴 RENDERIZADO DE 4 TARJETAS PRINCIPALES
+    # RENDERIZADO DE 4 TARJETAS PRINCIPALES
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Ingresos Reales (Inercia)", f"${ingresos_reales:,.0f}")
-    col2.metric("Proyección Solufar", f"${ingresos_solufar:,.0f}", f"{upside_pct:+.1f}% Upside Neto")
+    col2.metric("Proyección Óptima", f"${ingresos_optimos:,.0f}", f"{upside_pct:+.1f}% Upside Neto")
     col3.metric("Fuga Identificada (Bajos precios)", f"+${fuga_total:,.0f}", delta_color="normal")
     col4.metric("Pérdida Oportunidad (Altos precios)", f"-${perdida_total:,.0f}", delta_color="inverse")
     
     st.divider()
 
-    # Renderizado de Tarjetas (Row 2: Operaciones)
+    # Tarjetas (Row 2: Operaciones)
     col5, col6, col7, col8 = st.columns(4)
     col5.metric("SKUs Analizados", cantidad_skus)
     col6.metric("Periodo Analizado", f"{meses_totales} meses")
@@ -106,14 +106,14 @@ with tab1:
     
     st.divider()
 
-    # Renderizado de Tarjetas (Row 3: Márgenes)
+    # Tarjetas (Row 3: Márgenes)
     col9, col10 = st.columns(2)
     col9.metric("Margen Bruto Histórico", f"{margen_real_pct:.1f}%")
-    col10.metric("Margen Proyectado Solufar", f"{margen_solufar_pct:.1f}%", f"+{(margen_solufar_pct - margen_real_pct):.1f}%")
+    col10.metric("Margen Proyectado Óptimo", f"{margen_optimo_pct:.1f}%", f"+{(margen_optimo_pct - margen_real_pct):.1f}%")
 
     st.markdown("### 📋 Desglose de Impacto por SKU")
     
-    # 🔴 PREPARAR TABLA RESUMEN CON LAS NUEVAS 5 COLUMNAS
+    # PREPARAR TABLA RESUMEN DE 5 COLUMNAS
     resumen_sku = df_calc.groupby('Nombre_Producto').agg(
         Cajas_Vendidas=('Ctdad_Ordenada', 'sum'),
         Meses_Inercia=('Cambio_Precio', lambda x: (x == 0).sum()),
@@ -182,7 +182,7 @@ with tab2:
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # BITÁCORA HTML RENDERIZADA CON LA FUNCIÓN SEGURA
+    # BITÁCORA HTML RENDERIZADA
     st.markdown("### 📝 Bitácora de Decisiones Algorítmicas")
     df_filtrado['Mes_Str'] = pd.to_datetime(df_filtrado['Mes_Ano']).dt.strftime('%Y-%m')
     
