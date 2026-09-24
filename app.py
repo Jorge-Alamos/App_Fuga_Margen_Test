@@ -24,8 +24,8 @@ df_trazabilidad = load_data()
 def renderizar_tabla_html(df_filtrado):
     html = "<style>"
     html += ".bitacora-table { width: 100%; border-collapse: collapse; font-family: 'Segoe UI', Arial, sans-serif; background-color: white; border: 1px solid #e0e0e0; }"
-    html += ".bitacora-table th { background-color: #34495e; color: white; text-align: left; padding: 12px; font-size: 14px; }"
-    html += ".bitacora-table td { border-bottom: 1px solid #e0e0e0; padding: 12px; font-size: 13px; color: #2c3e50; vertical-align: top; }"
+    html += ".bitacora-table th { background-color: #34495e; color: white; text-align: left; padding: 14px; font-size: 16px; }"
+    html += ".bitacora-table td { border-bottom: 1px solid #e0e0e0; padding: 14px; font-size: 15px; color: #2c3e50; vertical-align: top; line-height: 1.5; }"
     html += ".bitacora-table tr:hover { background-color: #f8f9fa; }"
     html += "</style>"
     html += "<table class='bitacora-table'><thead><tr>"
@@ -35,7 +35,16 @@ def renderizar_tabla_html(df_filtrado):
 
     for _, row in df_filtrado.iterrows():
         explicacion = row['Explicacion_Dinamica'] if pd.notna(row['Explicacion_Dinamica']) else "Sin datos"
-        html += f"<tr><td>{row['Mes_Str']}</td><td>${row['Costo_Unitario']:,.0f}</td><td>${row['Precio_Unitario']:,.0f}</td><td style='color: #2E86C1; font-weight: bold;'>${row['Precio_Solufar_Emitido']:,.0f}</td><td>{row['Margen_Pct_Final']:.1f}%</td><td>{explicacion}</td></tr>"
+        html += (
+            f"<tr>"
+            f"<td style='font-weight: 600;'>{row['Mes_Str']}</td>"
+            f"<td>${row['Costo_Unitario']:,.0f}</td>"
+            f"<td>${row['Precio_Unitario']:,.0f}</td>"
+            f"<td style='color: #2E86C1; font-weight: bold;'>${row['Precio_Solufar_Emitido']:,.0f}</td>"
+            f"<td style='font-weight: 600;'>{row['Margen_Pct_Final']:.1f}%</td>"
+            f"<td>{explicacion}</td>"
+            f"</tr>"
+        )
 
     html += "</tbody></table>"
     return html
