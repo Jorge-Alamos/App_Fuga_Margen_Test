@@ -1,7 +1,8 @@
 # =============================================================================
 # MÓDULO PÁGINA 1: vista_diagnostico.py
-# Objetivo: Mostrar el Resumen Ejecutivo Global y la Auditoría Histórica por SKU
-#           consumiendo los datos del Cuaderno 1 (resultados_motor_multisku.csv).
+# Objetivo: Mostrar en una sola vista amplia el Resumen Ejecutivo Global, la
+#           Matriz General con todos los KPIs de todos los medicamentos y el
+#           Gráfico Interactivo de Auditoría Histórica + Bitácora.
 # =============================================================================
 import streamlit as st
 import pandas as pd
@@ -12,11 +13,10 @@ import estilos_ui
 
 
 # -----------------------------------------------------------------------------
-# PARTE 1: Vista de Resumen Ejecutivo Global (Portafolio Completo)
+# PARTE 1: Resumen Ejecutivo Global de la Cadena (Tarjetas Financieras y Operativas)
 # -----------------------------------------------------------------------------
-def mostrar_resumen_ejecutivo(df_trazabilidad: pd.DataFrame):
-    """Calcula las métricas financieras y operativas de la cadena y dibuja las tarjetas KPI."""
-    # Compatibilidad segura con el nombre de la columna del motor
+def mostrar_resumen_global_cadena(df_trazabilidad: pd.DataFrame) -> pd.DataFrame:
+    """Dibuja el diagnóstico general del portafolio (4 financieras, 4 operativas, 2 márgenes)."""
     col_precio_motor = 'Precio_Motor_Emitido' if 'Precio_Motor_Emitido' in df_trazabilidad.columns else 'Precio_Solufar_Emitido'
 
     df_calc = df_trazabilidad.dropna(
@@ -24,23 +24,21 @@ def mostrar_resumen_ejecutivo(df_trazabilidad: pd.DataFrame):
     ).copy()
     df_calc['Mes_Ano'] = pd.to_datetime(df_calc['Mes_Ano'])
 
-    # 1. Cálculos financieros bifurcados (Ingresos, Fuga y Pérdida de Oportunidad)
+    # 1. Métricas financieras acumuladas
     ingresos_reales = (df_calc['Precio_Unitario'] * df_calc['Ctdad_Ordenada']).sum()
     ingresos_optimos = (df_calc[col_precio_motor] * df_calc['Ctdad_Ordenada']).sum()
 
-    # A) Fuga Identificada (Cuando se cobró más barato que lo sugerido por el motor)
     df_calc['Brecha_Positiva'] = (df_calc[col_precio_motor] - df_calc['Precio_Unitario']).clip(lower=0)
     df_calc['Fuga_Valor'] = df_calc['Brecha_Positiva'] * df_calc['Ctdad_Ordenada']
     fuga_total = df_calc['Fuga_Valor'].sum()
 
-    # B) Pérdida de Oportunidad (Cuando se cobró más caro que lo sugerido por el motor)
     df_calc['Brecha_Negativa'] = (df_calc['Precio_Unitario'] - df_calc[col_precio_motor]).clip(lower=0)
     df_calc['Perdida_Oportunidad'] = df_calc['Brecha_Negativa'] * df_calc['Ctdad_Ordenada']
     perdida_total = df_calc['Perdida_Oportunidad'].sum()
 
     upside_pct = ((ingresos_optimos - ingresos_reales) / ingresos_reales) * 100.0 if ingresos_reales > 0 else 0.0
 
-    # 2. Cálculos operativos, inercia de precios y márgenes
+    # 2. Métricas operativas y de margen
     cantidad_skus = df_calc['Nombre_Producto'].nunique()
     meses_totales = df_calc['Mes_Ano'].nunique()
 
@@ -54,123 +52,169 @@ def mostrar_resumen_ejecutivo(df_trazabilidad: pd.DataFrame):
     margen_optimo_pct = ((ingresos_optimos - costo_total_vendido) / ingresos_optimos) * 100.0 if ingresos_optimos > 0 else 0.0
     delta_margen = margen_optimo_pct - margen_real_pct
 
-    # 3. Fila 1: 4 Tarjetas de Impacto Financiero
-    st.markdown("<div style='font-size:15px; font-weight:800; color:#0F172A; margin-bottom:10px;'>💰 Impacto Financiero Acumulado</div>", unsafe_allow_html=True)
-    c1, c2, c3, c4 = st.columns(4)
+    # Fila 1: 4 Tarjetas Financieras Amplias
+    st.markdown("<div style='font-size:18px; font-weight:800; color:#0F172A; margin-bottom:12px;'>📊 Diagnóstico General del Portafolio</div>", unsafe_allow_html=True)
+    c1, c2, c3, c4 = st.columns(4, gap="medium")
     with c1:
         estilos_ui.tarjeta_kpi(
-            "Ingresos Reales (Inercia)", f"${ingresos_reales:,.0f}",
+            "Ingresos Reales", f"${ingresos_reales:,.0f}",
             "Facturación histórica cobrada", variante="blanca"
         )
     with c2:
         estilos_ui.tarjeta_kpi(
             "Proyección Motor", f"${ingresos_optimos:,.0f}",
-            f"▲ {upside_pct:+.1f}% Upside Neto potencial",
+            f"Upside Neto: {upside_pct:+.1f}%",
             variante="esmeralda", color_valor="#047857", color_sub="#059669"
         )
     with c3:
         estilos_ui.tarjeta_kpi(
             "Fuga Identificada", f"+${fuga_total:,.0f}",
-            "Por precios bajos no actualizados",
+            "Por precios bajos sin actualizar",
             variante="azul", color_valor="#1D4ED8", color_sub="#2563EB"
         )
     with c4:
         estilos_ui.tarjeta_kpi(
-            "Pérdida de Oportunidad", f"-${perdida_total:,.0f}",
-            "Fricción comercial por sobreprecio",
+            "Pérdida Oportunidad", f"-${perdida_total:,.0f}",
+            "Por precios altos sobre mercado",
             variante="rosa", color_valor="#B91C1C", color_sub="#DC2626"
         )
 
-    st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
 
-    # 4. Fila 2: 6 Tarjetas de Alcance Operativo y Eficiencia de Margen
-    st.markdown("<div style='font-size:15px; font-weight:800; color:#0F172A; margin-bottom:10px;'>⚙️ Alcance del Estudio y Eficiencia de Margen</div>", unsafe_allow_html=True)
-    o1, o2, o3, o4, o5, o6 = st.columns(6)
+    # Fila 2: 4 Tarjetas de Alcance del Estudio y Eficiencia
+    st.markdown("<div style='font-size:16px; font-weight:800; color:#0F172A; margin-bottom:12px;'>⚙️ Alcance del Estudio y Eficiencia</div>", unsafe_allow_html=True)
+    o1, o2, o3, o4 = st.columns(4, gap="medium")
     with o1:
-        estilos_ui.tarjeta_kpi("SKUs Analizados", f"{cantidad_skus}", "Cartera auditada", variante="blanca")
+        estilos_ui.tarjeta_kpi("SKUs Analizados", f"{cantidad_skus}", "Medicamentos en cartera", variante="blanca")
     with o2:
-        estilos_ui.tarjeta_kpi("Periodo Estudio", f"{meses_totales} meses", "Trazabilidad mensual", variante="blanca")
+        estilos_ui.tarjeta_kpi("Periodo (Meses)", f"{meses_totales}", "Meses de historia auditada", variante="blanca")
     with o3:
-        estilos_ui.tarjeta_kpi("Arquitectura", "9 Capas", "5 Expertos + 2 Leyes", variante="blanca")
+        estilos_ui.tarjeta_kpi("Capas Algoritmo", "9 Activas", "5 Expertos + 2 Leyes de Blindaje", variante="blanca")
     with o4:
         estilos_ui.tarjeta_kpi(
-            "Inercia Promedio", f"{promedio_congelado_por_sku:.1f} m",
-            "Meses sin actualizar precio",
+            "Inercia Promedio", f"{promedio_congelado_por_sku:.1f} Meses/SKU",
+            "Sin actualizar precio en mostrador",
             variante="ambar", color_valor="#B45309", color_sub="#D97706"
         )
-    with o5:
-        estilos_ui.tarjeta_kpi("Margen Histórico", f"{margen_real_pct:.1f}%", "Margen bruto real", variante="blanca")
-    with o6:
+
+    st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+
+    # Fila 3: 2 Tarjetas Comparativas de Margen Bruto
+    m1, m2 = st.columns(2, gap="medium")
+    with m1:
         estilos_ui.tarjeta_kpi(
-            "Margen Motor", f"{margen_optimo_pct:.1f}%",
-            f"Mejora de {delta_margen:+.1f}% pts",
+            "Margen Bruto Histórico", f"{margen_real_pct:.1f}%",
+            "Rentabilidad real obtenida con precios inerciales", variante="blanca"
+        )
+    with m2:
+        estilos_ui.tarjeta_kpi(
+            "Margen Proyectado Motor", f"{margen_optimo_pct:.1f}%",
+            f" Expansión de {delta_margen:+.1f}% puntos porcentuales de margen",
             variante="indigo", color_valor="#4338CA", color_sub="#4F46E5"
         )
 
-    st.markdown("<div style='height: 22px;'></div>", unsafe_allow_html=True)
+    return df_calc
 
-    # 5. Tabla ejecutiva de desglose de impacto por SKU
-    st.markdown("<div style='font-size:16px; font-weight:800; color:#0F172A; margin-bottom:10px;'>📋 Desglose de Impacto por Medicamento (SKU)</div>", unsafe_allow_html=True)
 
-    resumen_sku = df_calc.groupby('Nombre_Producto').agg(
-        Cajas_Vendidas=('Ctdad_Ordenada', 'sum'),
-        Meses_Inercia=('Cambio_Precio', lambda x: (x == 0).sum()),
-        Fuga=('Fuga_Valor', 'sum'),
-        Perdida=('Perdida_Oportunidad', 'sum')
-    ).reset_index().sort_values(by='Fuga', ascending=False)
+# -----------------------------------------------------------------------------
+# PARTE 2: Mirada General de Todos los Medicamentos (Todos los KPIs por SKU)
+# -----------------------------------------------------------------------------
+def mostrar_matriz_general_skus(df_calc: pd.DataFrame, df_decision: pd.DataFrame):
+    """Muestra la tabla panorámica con todos los KPIs actuales, históricos y de fuga de los 10 SKUs."""
+    st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:18px; font-weight:800; color:#0F172A; margin-bottom:6px;'>📋 Mirada General de Medicamentos (Todos los KPIs por SKU)</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:13.5px; color:#64748B; margin-bottom:14px;'>Vista consolidada de costos, pisos de seguridad, rotación, inercia, márgenes actuales, fugas históricas y precios sugeridos para toda la cartera.</div>", unsafe_allow_html=True)
 
-    resumen_sku.rename(columns={
-        'Nombre_Producto': 'Medicamento',
-        'Cajas_Vendidas': 'Volumen Total (Cajas)',
-        'Meses_Inercia': 'Inercia (Meses congelado)',
-        'Fuga': 'Fuga Identificada (CLP)',
-        'Perdida': 'Pérdida Oportunidad (CLP)'
-    }, inplace=True)
+    # 1. Resumen de Fuga y Pérdida histórica desde Cuaderno 1
+    resumen_hist = df_calc.groupby('Nombre_Producto').agg(
+        Volumen_Total_Hist=('Ctdad_Ordenada', 'sum'),
+        Fuga_Historica=('Fuga_Valor', 'sum'),
+        Perdida_Historica=('Perdida_Oportunidad', 'sum')
+    ).reset_index()
+
+    # 2. Unión con los KPIs actuales y estrategias del Cuaderno 2
+    df_general = pd.merge(df_decision, resumen_hist, on='Nombre_Producto', how='left')
+    df_general = df_general.sort_values(by='Fuga_Historica', ascending=False).reset_index(drop=True)
+
+    # Selección y ordenamiento de todos los KPIs clave para la mirada general
+    tabla_kpi_completa = pd.DataFrame({
+        'Medicamento': df_general['Nombre_Producto'],
+        'Categoría': df_general['KPI_Categoria'],
+        'Meses Hist.': df_general['Total_Meses_Historia'],
+        'Costo Actual': df_general['KPI_Costo_Actual'],
+        'Piso Blindaje (C6)': df_general['KPI_Piso_Seguridad'],
+        'Precio Actual': df_general['KPI_Precio_Actual'],
+        'Cajas Últ. Mes': df_general['KPI_Cajas_Ultimo_Mes'],
+        'Prom. Cajas Hist.': df_general['KPI_Prom_Cajas_Hist'],
+        'Inercia (Meses)': df_general['KPI_Meses_Inercia'],
+        'Margen Actual (%)': df_general['KPI_Margen_Actual_Pct'],
+        'Ganancia/Caja ($)': df_general['KPI_Ganancia_Caja_Actual'],
+        'Fuga Identificada ($)': df_general['Fuga_Historica'],
+        'Pérdida Oport. ($)': df_general['Perdida_Historica'],
+        'Sugerido t+1 ★': df_general['Precio_Sugerido'],
+        'Margen t+1 (%)': df_general['Margen_Sugerido_Pct']
+    })
 
     with st.container(border=True):
         st.dataframe(
-            resumen_sku.style.format({
-                'Volumen Total (Cajas)': '{:,.0f}',
-                'Fuga Identificada (CLP)': '+${:,.0f}',
-                'Pérdida Oportunidad (CLP)': '-${:,.0f}'
+            tabla_kpi_completa.style.format({
+                'Costo Actual': '${:,.0f}',
+                'Piso Blindaje (C6)': '${:,.0f}',
+                'Precio Actual': '${:,.0f}',
+                'Cajas Últ. Mes': '{:,.0f}',
+                'Prom. Cajas Hist.': '{:,.0f}',
+                'Margen Actual (%)': '{:.1f}%',
+                'Ganancia/Caja ($)': '${:,.0f}',
+                'Fuga Identificada ($)': '+${:,.0f}',
+                'Pérdida Oport. ($)': '-${:,.0f}',
+                'Sugerido t+1 ★': '${:,.0f}',
+                'Margen t+1 (%)': '{:.1f}%'
             }),
             use_container_width=True,
-            hide_index=True
+            hide_index=True,
+            height=410
         )
 
 
 # -----------------------------------------------------------------------------
-# PARTE 2: Vista de Auditoría Detallada y Bitácora Mes a Mes por SKU
+# PARTE 3: Gráfico Interactivo de Auditoría por SKU + Bitácora Mes a Mes
 # -----------------------------------------------------------------------------
-def mostrar_auditoria_sku(df_trazabilidad: pd.DataFrame):
-    """Dibuja el gráfico interactivo de auditoría y la tabla de bitácora del SKU elegido."""
+def mostrar_grafico_y_bitacora_sku(df_trazabilidad: pd.DataFrame):
+    """Muestra directamente el gráfico histórico de auditoría y la tabla de bitácora."""
     col_precio_motor = 'Precio_Motor_Emitido' if 'Precio_Motor_Emitido' in df_trazabilidad.columns else 'Precio_Solufar_Emitido'
+
+    st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+    st.markdown("<hr style='border:none; border-top:1px solid #E2E8F0; margin-bottom:24px;'>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:18px; font-weight:800; color:#0F172A; margin-bottom:12px;'>🔍 Auditoría Algorítmica Detallada por Medicamento (Gráfico y Bitácora)</div>", unsafe_allow_html=True)
 
     lista_productos = df_trazabilidad['Nombre_Producto'].dropna().unique().tolist()
 
-    col_sel, col_leyenda = st.columns([6, 4])
+    col_sel, col_leyenda = st.columns([5.5, 4.5], gap="large")
     with col_sel:
-        sku_seleccionado = st.selectbox("🔍 Selecciona un Medicamento para auditar su historia:", lista_productos)
+        sku_seleccionado = st.selectbox(
+            "Selecciona un SKU para visualizar su curva de auditoría histórica:",
+            options=lista_productos,
+            key="selector_diagnostico_sku"
+        )
+
+    with col_leyenda:
+        st.markdown("<div style='height: 26px;'></div>", unsafe_allow_html=True)
+        st.markdown(
+            "<div style='background:#FFFFFF; border:1px solid #E2E8F0; padding:10px 16px; border-radius:8px; font-size:13px; color:#475569;'>"
+            "🔴 <b>Punto Rojo:</b> Mandato Humano (Cambio manual) &nbsp;|&nbsp; 🔵 <b>Punto Azul:</b> Orquestación del Motor</div>",
+            unsafe_allow_html=True
+        )
 
     df_filtrado = df_trazabilidad[df_trazabilidad['Nombre_Producto'] == sku_seleccionado].copy()
     df_filtrado['Mes_Ano'] = pd.to_datetime(df_filtrado['Mes_Ano'])
     df_filtrado = df_filtrado.sort_values('Mes_Ano').reset_index(drop=True)
     df_filtrado['Mes_Str'] = df_filtrado['Mes_Ano'].dt.strftime('%Y-%m')
 
-    with col_leyenda:
-        st.markdown("<div style='height: 26px;'></div>", unsafe_allow_html=True)
-        st.markdown(
-            "<div style='background:#FFFFFF; border:1px solid #E2E8F0; padding:9px 14px; border-radius:8px; font-size:12.5px; color:#475569;'>"
-            "🔴 <b>Punto Rojo:</b> Mandato Humano (Cambio manual) &nbsp;|&nbsp; 🔵 <b>Punto Azul:</b> Orquestación del Motor</div>",
-            unsafe_allow_html=True
-        )
-
-    # 1. Gráfico Histórico Interactivo sobre tarjeta blanca
+    # 1. Gráfico Interactivo de Auditoría (Visible siempre en Diagnóstico)
     with st.container(border=True):
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         colores_marcadores = np.where(df_filtrado.get('Driver_Precio', '') == 'MANDATO_HUMANO', '#EF4444', '#2563EB')
 
-        # Barras celestes de volumen
         fig.add_trace(
             go.Bar(
                 x=df_filtrado['Mes_Str'], y=df_filtrado['Ctdad_Ordenada'],
@@ -179,20 +223,18 @@ def mostrar_auditoria_sku(df_trazabilidad: pd.DataFrame):
             secondary_y=True
         )
 
-        # Curva principal del motor con explicación emergente
         fig.add_trace(
             go.Scatter(
                 x=df_filtrado['Mes_Str'], y=df_filtrado[col_precio_motor],
-                mode='lines+markers', name='Precio Sugerido Motor',
+                mode='lines+markers', name='Precio Final Emitido (Motor)',
                 line=dict(color='#2563EB', width=3),
-                marker=dict(size=11, color=colores_marcadores, line=dict(width=2, color='white')),
+                marker=dict(size=12, color=colores_marcadores, line=dict(width=2, color='white')),
                 customdata=df_filtrado.get('Explicacion_Dinamica', ''),
-                hovertemplate="%{customdata}<br><br><b>Precio Motor:</b> $%{y:,.0f}<extra></extra>"
+                hovertemplate="%{customdata}<br><br><b>Precio Final:</b> $%{y:,.0f}<extra></extra>"
             ),
             secondary_y=False
         )
 
-        # Línea gris discontinua de precio cobrado en mostrador
         fig.add_trace(
             go.Scatter(
                 x=df_filtrado['Mes_Str'], y=df_filtrado['Precio_Unitario'],
@@ -203,51 +245,45 @@ def mostrar_auditoria_sku(df_trazabilidad: pd.DataFrame):
             secondary_y=False
         )
 
-        # Línea gris punteada de costo de adquisición
         fig.add_trace(
             go.Scatter(
                 x=df_filtrado['Mes_Str'], y=df_filtrado['Costo_Unitario'],
                 mode='lines', name='Costo Adquisición',
-                line=dict(color='#94A3B8', width=3, dash='dot'),
+                line=dict(color='#94A3B8', width=3.5, dash='dot'),
                 hovertemplate="Costo: $%{y:,.0f}<extra></extra>"
             ),
             secondary_y=False
         )
 
         fig.update_layout(
-            title=dict(text=f"<b>Trazabilidad Histórica: {sku_seleccionado}</b>", font=dict(size=18, color="#0F172A")),
+            title=dict(text=f"<b>Auditoría Algorítmica: {sku_seleccionado}</b>", font=dict(size=19, color="#0F172A")),
             hovermode="x unified",
             plot_bgcolor="white",
             paper_bgcolor="white",
-            height=560,
-            margin=dict(l=30, r=30, t=60, b=40),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=13)),
-            hoverlabel=dict(font_size=13, font_family="Inter, Segoe UI, sans-serif")
+            height=620,
+            margin=dict(l=30, r=30, t=65, b=40),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=13.5)),
+            hoverlabel=dict(font_size=13.5, font_family="Inter, Segoe UI, sans-serif")
         )
-        fig.update_yaxes(title=dict(text="<b>Precio ($ CLP)</b>", font=dict(size=14)), tickformat="$,.0f", secondary_y=False, gridcolor='#F1F5F9')
-        fig.update_yaxes(title=dict(text="<b>Volumen (Cajas)</b>", font=dict(size=14)), secondary_y=True, showgrid=False)
-        fig.update_xaxes(title=dict(text="<b>Mes</b>", font=dict(size=14)), tickangle=-45, showgrid=False)
+        fig.update_yaxes(title=dict(text="<b>Precio ($ CLP)</b>", font=dict(size=15)), tickformat="$,.0f", secondary_y=False, gridcolor='#F1F5F9')
+        fig.update_yaxes(title=dict(text="<b>Volumen (Cajas)</b>", font=dict(size=15)), secondary_y=True, showgrid=False)
+        fig.update_xaxes(title=dict(text="<b>Mes</b>", font=dict(size=15)), tickangle=-45, showgrid=False)
 
         st.plotly_chart(fig, use_container_width=True)
 
-    # 2. Tabla de Bitácora renderizada con el módulo de estilos_ui.py
-    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
-    st.markdown("<div style='font-size:16px; font-weight:800; color:#0F172A; margin-bottom:10px;'>📝 Bitácora de Decisiones Algorítmicas (Mes a Mes)</div>", unsafe_allow_html=True)
+    # 2. Bitácora de Decisiones Algorítmicas
+    st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:17px; font-weight:800; color:#0F172A; margin-bottom:10px;'>📝 Bitácora de Decisiones Algorítmicas (Detalle Mes a Mes)</div>", unsafe_allow_html=True)
 
     tabla_html = estilos_ui.renderizar_tabla_bitacora(df_filtrado)
     st.markdown(tabla_html, unsafe_allow_html=True)
 
 
 # -----------------------------------------------------------------------------
-# PARTE 3: Orquestador Principal del Módulo de Diagnóstico
+# PARTE 4: Orquestador de la Vista de Diagnóstico (Sin sub-pestañas ocultas)
 # -----------------------------------------------------------------------------
-def renderizar_vista_diagnostico(df_trazabilidad: pd.DataFrame):
-    """Organiza las dos sub-pestañas de diagnóstico histórico."""
-    sub_tab1, sub_tab2 = st.tabs([
-        "🌎 Resumen Ejecutivo Global",
-        "🔍 Auditoría Detallada por SKU"
-    ])
-    with sub_tab1:
-        mostrar_resumen_ejecutivo(df_trazabilidad)
-    with sub_tab2:
-        mostrar_auditoria_sku(df_trazabilidad)
+def renderizar_vista_diagnostico(df_trazabilidad: pd.DataFrame, df_decision: pd.DataFrame):
+    """Despliega en orden: 1) Resumen Global, 2) Matriz General de KPIs, 3) Gráfico + Bitácora."""
+    df_calc = mostrar_resumen_global_cadena(df_trazabilidad)
+    mostrar_matriz_general_skus(df_calc, df_decision)
+    mostrar_grafico_y_bitacora_sku(df_trazabilidad)
