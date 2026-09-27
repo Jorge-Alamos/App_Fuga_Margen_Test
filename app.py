@@ -56,3 +56,9 @@ with tab_asignacion:
 
 with tab_diagnostico:
     vista_diagnostico.renderizar_vista_diagnostico(df_trazabilidad)
+# Reemplaza únicamente las últimas 6 líneas de tu app.py por estas:
+with tab_asignacion:
+    vista_asignacion.renderizar_vista_asignacion(df_trazabilidad, df_decision_t1)
+
+with tab_diagnostico:
+    vista_diagnostico.renderizar_vista_diagnostico(df_trazabilidad, df_decision_t1)
