@@ -1,8 +1,7 @@
 # =============================================================================
 # MÓDULO PÁGINA 2: vista_asignacion.py
-# Objetivo: Desplegar la Interfaz para Asignación de Precios (t+1) combinando
-#           la historia (resultados_motor_multisku.csv) con las opciones y
-#           textos de decisión (decision_t1_skus.csv).
+# Objetivo: Desplegar la Interfaz para Asignación de Precios (t+1) con diseño
+#           amplio, descongestionado y con márgenes extendidos.
 # =============================================================================
 import streamlit as st
 import pandas as pd
@@ -13,7 +12,7 @@ import estilos_ui
 
 
 # -----------------------------------------------------------------------------
-# PARTE 1: Validador en vivo de Reglas de Negocio (Para Estrategias y Precio Manual)
+# PARTE 1: Validador en vivo de Reglas de Negocio
 # -----------------------------------------------------------------------------
 def evaluar_regla_en_vivo(precio_elegido: float, costo: float, piso_ley: float, margen_cat: float) -> dict:
     """Calcula en tiempo real el margen, la ganancia por caja y el cumplimiento del Piso."""
@@ -58,7 +57,7 @@ def crear_grafico_historico_y_t1(df_trazabilidad: pd.DataFrame, row_dec: pd.Seri
 
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-    # 1. Barras celestes de ventas históricas (Sin barra en el Mes Entrante)
+    # 1. Barras celestes de ventas históricas
     fig.add_trace(
         go.Bar(
             x=df_real['Mes_Str'], y=df_real['Ctdad_Ordenada'],
@@ -67,7 +66,7 @@ def crear_grafico_historico_y_t1(df_trazabilidad: pd.DataFrame, row_dec: pd.Seri
         secondary_y=True
     )
 
-    # 2. Línea punteada de Costo de Adquisición (extendida hasta t+1)
+    # 2. Línea punteada de Costo de Adquisición
     x_costo = df_real['Mes_Str'].tolist() + [mes_t1_str]
     y_costo = df_real['Costo_Unitario'].tolist() + [costo_t1]
     fig.add_trace(
@@ -120,13 +119,13 @@ def crear_grafico_historico_y_t1(df_trazabilidad: pd.DataFrame, row_dec: pd.Seri
         )
 
     fig.update_layout(
-        title=dict(text="<b>Gráfico histórico y proyectado para el siguiente periodo</b>", font=dict(size=16, color="#0F172A")),
+        title=dict(text="<b>Gráfico histórico y proyectado para el siguiente periodo</b>", font=dict(size=17, color="#0F172A")),
         hovermode="x unified",
         plot_bgcolor="white",
         paper_bgcolor="white",
-        height=395,
-        margin=dict(l=20, r=20, t=50, b=20),
-        legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="left", x=0, font=dict(size=12))
+        height=440,
+        margin=dict(l=25, r=25, t=55, b=25),
+        legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="left", x=0, font=dict(size=12.5))
     )
     fig.update_yaxes(title_text="<b>Precio ($ CLP)</b>", tickformat="$,.0f", secondary_y=False, gridcolor='#F1F5F9')
     fig.update_yaxes(title_text="<b>Cajas</b>", secondary_y=True, showgrid=False)
@@ -139,7 +138,7 @@ def crear_grafico_historico_y_t1(df_trazabilidad: pd.DataFrame, row_dec: pd.Seri
 # PARTE 3: Renderizador Principal de la Interfaz de Asignación de Precios
 # -----------------------------------------------------------------------------
 def renderizar_vista_asignacion(df_trazabilidad: pd.DataFrame, df_decision: pd.DataFrame):
-    """Construye la pantalla de decisión: Cabecera, 5 KPIs, Gráfico, Expertos y Cierre POS."""
+    """Construye la pantalla de decisión con espaciado amplio en 4 bloques claros."""
     # --- SUBPARTE 3.1: Memoria de sesión y barra selectora de SKU ---
     if 'confirmados_pos' not in st.session_state:
         st.session_state.confirmados_pos = {}
@@ -149,16 +148,16 @@ def renderizar_vista_asignacion(df_trazabilidad: pd.DataFrame, df_decision: pd.D
     lista_skus = df_decision['Nombre_Producto'].tolist()
     total_skus = len(lista_skus)
 
-    col_titulo, col_selector, col_progreso = st.columns([4.2, 4.3, 1.5])
+    col_titulo, col_selector, col_progreso = st.columns([3.8, 4.7, 1.5], gap="medium")
 
     with col_titulo:
-        st.markdown("<div style='font-size:20px; font-weight:800; color:#0F172A; padding-top:4px;'>Interfaz para asignación de precios</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:21px; font-weight:800; color:#0F172A; padding-top:4px;'>Interfaz para asignación de precios</div>", unsafe_allow_html=True)
 
     with col_selector:
         def formato_estado_sku(nombre):
             icono = "🟢" if nombre in st.session_state.confirmados_pos else "🔴"
             estado = "Confirmado" if nombre in st.session_state.confirmados_pos else "Pendiente"
-            return f"🔍 {icono} {estado} — {nombre[:42]}"
+            return f"🔍 {icono} {estado} — {nombre}"
 
         sku_seleccionado = st.selectbox(
             "Selector SKU",
@@ -172,20 +171,22 @@ def renderizar_vista_asignacion(df_trazabilidad: pd.DataFrame, df_decision: pd.D
     with col_progreso:
         listos = len(st.session_state.confirmados_pos)
         st.markdown(
-            f"<div style='background:#FFFFFF; border:1px solid #CBD5E1; padding:8px 12px; border-radius:8px; text-align:center; font-weight:700; font-size:12.5px; color:#334155;'>"
+            f"<div style='background:#FFFFFF; border:1px solid #CBD5E1; padding:9px 14px; border-radius:8px; text-align:center; font-weight:700; font-size:13px; color:#334155;'>"
             f"Progreso: {listos} de {total_skus} listos</div>",
             unsafe_allow_html=True
         )
 
-    # Extraemos la fila del medicamento activo
+    st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+
+    # Datos del medicamento activo
     row = df_decision[df_decision['Nombre_Producto'] == sku_seleccionado].iloc[0]
     costo = float(row['KPI_Costo_Actual'])
     piso = float(row.get('P_Ley_Piso', row['KPI_Piso_Seguridad']))
     p_actual = float(row['KPI_Precio_Actual'])
     m_cat = float(row.get('Margen_Teorico_Categoria_Pct', 25.0))
 
-    # --- SUBPARTE 3.2: Fila Superior de 5 Tarjetas KPI ---
-    k1, k2, k3, k4, k5 = st.columns(5)
+    # --- SUBPARTE 3.2: Fila Superior de 5 Tarjetas KPI con separación amplia ---
+    k1, k2, k3, k4, k5 = st.columns(5, gap="medium")
     with k1:
         flecha = "▲" if row['KPI_Var_Costo_Pct'] >= 0 else "▼"
         estilos_ui.tarjeta_kpi(
@@ -217,7 +218,7 @@ def renderizar_vista_asignacion(df_trazabilidad: pd.DataFrame, df_decision: pd.D
             variante="indigo", color_valor="#4338CA", color_sub="#4F46E5"
         )
 
-    st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
 
     # --- SUBPARTE 3.3: Estado de la estrategia elegida por el usuario ---
     clave_est = f"estrategia_{sku_seleccionado}"
@@ -240,8 +241,8 @@ def renderizar_vista_asignacion(df_trazabilidad: pd.DataFrame, df_decision: pd.D
     else:
         precio_elegido = float(row['Precio_Sugerido'])
 
-    # --- SUBPARTE 3.4: Bloque Central en 2 Columnas (Gráfico Izquierda | Expertos Derecha) ---
-    col_grafico, col_expertos = st.columns([5.5, 4.5])
+    # --- SUBPARTE 3.4: Bloque Central en 2 Columnas Amplias (Gráfico | Expertos) ---
+    col_grafico, col_expertos = st.columns([5.6, 4.4], gap="large")
 
     with col_grafico:
         with st.container(border=True):
@@ -255,115 +256,123 @@ def renderizar_vista_asignacion(df_trazabilidad: pd.DataFrame, df_decision: pd.D
         w_st = int(row['Barra_Stock_Pct'])
 
         st.markdown(f"""
-        <div style="background:#FFFFFF; padding:18px; border-radius:12px; border:1px solid #E2E8F0; min-height:428px;">
-            <div style="font-size:16px; font-weight:800; color:#0F172A; margin-bottom:10px;">Análisis de los expertos</div>
-            <div style="display:flex; height:13px; border-radius:6px; overflow:hidden; margin-bottom:6px;">
+        <div style="background:#FFFFFF; padding:22px; border-radius:12px; border:1px solid #E2E8F0; min-height:472px;">
+            <div style="font-size:17px; font-weight:800; color:#0F172A; margin-bottom:12px;">Análisis de los expertos</div>
+            <div style="display:flex; height:14px; border-radius:6px; overflow:hidden; margin-bottom:8px;">
                 <div style="width:{w_el}%; background:#3B82F6;"></div>
                 <div style="width:{w_es}%; background:#8B5CF6;"></div>
                 <div style="width:{w_in}%; background:#10B981;"></div>
                 <div style="width:{w_st}%; background:#F59E0B;"></div>
             </div>
-            <div style="font-size:11.5px; color:#475569; margin-bottom:14px; font-weight:600;">
+            <div style="font-size:12px; color:#475569; margin-bottom:16px; font-weight:600;">
                 🧠 Elasticidad {w_el}% &nbsp;|&nbsp; 🏢 Estrategia {w_es}% &nbsp;|&nbsp; 📈 Inflación {w_in}% &nbsp;|&nbsp; 📦 Stock {w_st}%
             </div>
             <div class="expert-box" style="border-left: 4px solid #2563EB;">
-                <div style="font-weight:700; color:#1D4ED8; margin-bottom:3px;">¿Qué detectó el motor?</div>
+                <div style="font-weight:700; color:#1D4ED8; margin-bottom:4px;">¿Qué detectó el motor?</div>
                 <i>"{row['Texto_Azul_Deteccion']}"</i>
             </div>
             <div class="expert-box" style="border-left: 4px solid #7C3AED;">
-                <div style="font-weight:700; color:#6D28D9; margin-bottom:3px;">¿Qué decisión se tomó en el tribunal?</div>
+                <div style="font-weight:700; color:#6D28D9; margin-bottom:4px;">¿Qué decisión se tomó en el tribunal?</div>
                 <i>"{row['Texto_Morado_Tribunal']}"</i>
             </div>
             <div class="expert-box" style="border-left: 4px solid #10B981;">
-                <div style="font-weight:700; color:#047857; margin-bottom:3px;">¿Por qué la farmacia está protegida?</div>
+                <div style="font-weight:700; color:#047857; margin-bottom:4px;">¿Por qué la farmacia está protegida?</div>
                 <i>"{row['Texto_Verde_Proteccion']}"</i>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-    # --- SUBPARTE 3.5: Panel Inferior "Asignar Precio" y Confirmación POS ---
+    st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+
+    # --- SUBPARTE 3.5: Panel Inferior Descongestionado (2 Filas Amplias) ---
     with st.container(border=True):
-        st.markdown("<div style='font-size:15px; font-weight:800; color:#0F172A; margin-bottom:8px;'>Asignar Precio</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:17px; font-weight:800; color:#0F172A; margin-bottom:10px;'>Asignar Precio para el Mes Entrante</div>", unsafe_allow_html=True)
 
-        col_opciones, col_alerta, col_confirmar = st.columns([5.8, 2.4, 1.8])
+        # Fila A dentro del panel: Selector y las 4 Tarjetas a ancho completo
+        opcion_sel = st.radio(
+            "Seleccione la estrategia comercial a aplicar:",
+            options=["Estrategia cauta", "Sugerido motor ★", "Estrategia agresiva", "✏️ Precio Manual"],
+            horizontal=True,
+            key=clave_est
+        )
 
-        with col_opciones:
-            opcion_sel = st.radio(
-                "Seleccione una opción de precio:",
-                options=["Estrategia cauta", "Sugerido motor ★", "Estrategia agresiva", "✏️ Precio Manual"],
-                horizontal=True,
-                key=clave_est,
-                label_visibility="collapsed"
+        t1, t2, t3, t4 = st.columns(4, gap="medium")
+        def estilo_borde(op):
+            return "border:2px solid #4F46E5; background:#EEF2FF;" if opcion_sel == op else "border:1px solid #CBD5E1; background:#FFFFFF;"
+
+        with t1:
+            st.markdown(f"""
+            <div class="strat-card" style="{estilo_borde('Estrategia cauta')}">
+                <div style="font-size:13px; font-weight:700; color:#475569;">Estrategia cauta</div>
+                <div style="font-size:26px; font-weight:800; color:#0F172A; margin:6px 0;">${row['Precio_Cauto']:,.0f}</div>
+                <div style="font-size:12px; color:#64748B;">{row['Subtitulo_Cauto']} | Margen: {row['Margen_Cauto_Pct']:.1f}%</div>
+            </div>""", unsafe_allow_html=True)
+
+        with t2:
+            st.markdown(f"""
+            <div class="strat-card" style="{estilo_borde('Sugerido motor ★')}">
+                <div style="font-size:13px; font-weight:700; color:#4F46E5;">Sugerido motor ★</div>
+                <div style="font-size:26px; font-weight:800; color:#312E81; margin:6px 0;">${row['Precio_Sugerido']:,.0f}</div>
+                <div style="font-size:12px; color:#4F46E5;">{row['Subtitulo_Sugerido']} | Margen: {row['Margen_Sugerido_Pct']:.1f}%</div>
+            </div>""", unsafe_allow_html=True)
+
+        with t3:
+            st.markdown(f"""
+            <div class="strat-card" style="{estilo_borde('Estrategia agresiva')}">
+                <div style="font-size:13px; font-weight:700; color:#475569;">Estrategia agresiva</div>
+                <div style="font-size:26px; font-weight:800; color:#0F172A; margin:6px 0;">${row['Precio_Agresivo']:,.0f}</div>
+                <div style="font-size:12px; color:#64748B;">{row['Subtitulo_Agresivo']} | Margen: {row['Margen_Agresivo_Pct']:.1f}%</div>
+            </div>""", unsafe_allow_html=True)
+
+        with t4:
+            st.number_input(
+                "✏️ Ingresar Precio Manual ($ CLP):",
+                min_value=0.0,
+                step=100.0,
+                key=clave_man
             )
 
-            t1, t2, t3, t4 = st.columns(4)
-            def estilo_borde(op):
-                return "border:2px solid #4F46E5; background:#EEF2FF;" if opcion_sel == op else "border:1px solid #CBD5E1; background:#FFFFFF;"
+        st.markdown("<hr style='border:none; border-top:1px solid #E2E8F0; margin:16px 0;'>", unsafe_allow_html=True)
 
-            with t1:
-                st.markdown(f"""
-                <div class="strat-card" style="{estilo_borde('Estrategia cauta')}">
-                    <div style="font-size:12px; font-weight:600; color:#475569;">Estrategia cauta</div>
-                    <div style="font-size:21px; font-weight:800; margin:4px 0;">${row['Precio_Cauto']:,.0f}</div>
-                    <div style="font-size:11px; color:#64748B;">{row['Subtitulo_Cauto']}</div>
-                </div>""", unsafe_allow_html=True)
-
-            with t2:
-                st.markdown(f"""
-                <div class="strat-card" style="{estilo_borde('Sugerido motor ★')}">
-                    <div style="font-size:12px; font-weight:700; color:#4F46E5;">Sugerido motor ★</div>
-                    <div style="font-size:21px; font-weight:800; color:#312E81; margin:4px 0;">${row['Precio_Sugerido']:,.0f}</div>
-                    <div style="font-size:11px; color:#4F46E5;">{row['Subtitulo_Sugerido']}</div>
-                </div>""", unsafe_allow_html=True)
-
-            with t3:
-                st.markdown(f"""
-                <div class="strat-card" style="{estilo_borde('Estrategia agresiva')}">
-                    <div style="font-size:12px; font-weight:600; color:#475569;">Estrategia agresiva</div>
-                    <div style="font-size:21px; font-weight:800; margin:4px 0;">${row['Precio_Agresivo']:,.0f}</div>
-                    <div style="font-size:11px; color:#64748B;">{row['Subtitulo_Agresivo']}</div>
-                </div>""", unsafe_allow_html=True)
-
-            with t4:
-                st.number_input(
-                    "✏️ Precio Manual ($)",
-                    min_value=0.0,
-                    step=100.0,
-                    key=clave_man
-                )
-
-        # Evaluación en vivo del precio elegido
+        # Fila B dentro del panel: Validación, Nuevo Margen y Botón de Confirmación en 3 columnas amplias
         eval_vivo = evaluar_regla_en_vivo(precio_elegido, costo, piso, m_cat)
         nuevo_margen = eval_vivo["Margen_Pct"]
         nueva_ganancia = eval_vivo["Ganancia_Caja"]
         delta_un = precio_elegido - p_actual
         var_pct = ((delta_un / p_actual) * 100.0) if p_actual > 0 else 0.0
 
-        with col_alerta:
+        c_alerta, c_margen, c_boton = st.columns([4.2, 3.0, 2.8], gap="large")
+
+        with c_alerta:
             bg_alerta = "#ECFDF5" if eval_vivo["Estado_OK"] else "#FEF2F2"
             bd_alerta = "#6EE7B7" if eval_vivo["Estado_OK"] else "#FCA5A5"
             tx_alerta = "#065F46" if eval_vivo["Estado_OK"] else "#991B1B"
 
             st.markdown(f"""
-            <div style="background:{bg_alerta}; border:1px solid {bd_alerta}; color:{tx_alerta}; padding:8px 10px; border-radius:8px; font-size:11px; font-weight:600; margin-bottom:8px;">
-                Alerta Regla de Negocio:<br>{eval_vivo["Texto_Regla"]}
+            <div style="background:{bg_alerta}; border:1px solid {bd_alerta}; color:{tx_alerta}; padding:12px 16px; border-radius:10px; font-size:13px; font-weight:600;">
+                <b>Validación de Regla de Negocio:</b><br>{eval_vivo["Texto_Regla"]}
             </div>
-            <div style="font-size:12.5px; font-weight:700; color:#0F172A;">Nuevo Margen Proyectado:</div>
-            <div style="font-size:22px; font-weight:800; color:#0F172A;">{nuevo_margen:.1f}%</div>
-            <div style="font-size:11px; color:#16A34A; font-weight:600;">({delta_un:+,.0f}/un. vs. precio actual)</div>
             """, unsafe_allow_html=True)
 
-        with col_confirmar:
+        with c_margen:
             st.markdown(f"""
-            <div style="text-align:right;">
-                <div style="font-size:28px; font-weight:900; color:#0F172A;">${precio_elegido:,.0f}</div>
-                <div style="background:#E0F2FE; color:#0369A1; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; display:inline-block; margin-bottom:10px;">
-                    💵 Ganancia: ${nueva_ganancia:,.0f}/caja ({var_pct:+.1f}%)
-                </div>
+            <div style="padding-top:2px;">
+                <div style="font-size:13px; font-weight:700; color:#64748B; text-transform:uppercase;">Nuevo Margen Proyectado</div>
+                <div style="font-size:28px; font-weight:800; color:#0F172A; line-height:1.15;">{nuevo_margen:.1f}% <span style="font-size:14px; color:#16A34A; font-weight:600;">({delta_un:+,.0f}/caja vs. actual)</span></div>
             </div>
             """, unsafe_allow_html=True)
 
-            if st.button("Confirmar y Guardar ⏭️", type="primary", use_container_width=True):
+        with c_boton:
+            st.markdown(f"""
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-size:13px; font-weight:700; color:#475569;">Precio a aplicar: <b style="font-size:22px; color:#0F172A;">${precio_elegido:,.0f}</b></span>
+                <span style="background:#E0F2FE; color:#0369A1; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:700;">
+                    💵 +${nueva_ganancia:,.0f}/caja ({var_pct:+.1f}%)
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
+
+            if st.button("Confirmar y Guardar Precio ⏭️", type="primary", use_container_width=True):
                 st.session_state.confirmados_pos[sku_seleccionado] = {
                     'Nombre_Producto': sku_seleccionado,
                     'Mes_Aplicacion': str(row['Mes_Proyectado'])[:7],
@@ -380,6 +389,7 @@ def renderizar_vista_asignacion(df_trazabilidad: pd.DataFrame, df_decision: pd.D
 
     # --- SUBPARTE 3.6: Planilla descargable para el sistema de caja (POS) ---
     if len(st.session_state.confirmados_pos) > 0:
+        st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
         with st.expander(f"📋 Planilla de Precios Confirmados para Caja POS ({len(st.session_state.confirmados_pos)} de {total_skus} SKUs listos)", expanded=True):
             df_pos = pd.DataFrame(list(st.session_state.confirmados_pos.values()))
             st.dataframe(df_pos, use_container_width=True, hide_index=True)
