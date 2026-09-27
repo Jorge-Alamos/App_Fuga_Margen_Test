@@ -1,41 +1,19 @@
 # =============================================================================
-# PASO 1 STREAMLIT: TEMA ORIGINAL CLARO Y SISTEMA DE DISEÑO UX/UI (estilos_ui.py)
-# Objetivo: Definir la paleta luminosa original de la aplicación y crear los
-#           componentes visuales (tarjetas, cabeceras y tablas) de alto estándar.
-# =============================================================================
-!pip install PyGithub -q
-from github import Github, Auth
-from google.colab import userdata
-
-# -----------------------------------------------------------------------------
-# PARTE 1: Tema original de la aplicación (.streamlit/config.toml)
-# Define el color de fondo original (#F8FAFC), tarjetas blancas (#FFFFFF),
-# texto en azul pizarra profundo (#0F172A) y acento en índigo (#4F46E5).
-# -----------------------------------------------------------------------------
-config_toml_content = """[theme]
-primaryColor = "#4F46E5"
-backgroundColor = "#F8FAFC"
-secondaryBackgroundColor = "#FFFFFF"
-textColor = "#0F172A"
-font = "sans serif"
-"""
-
-# -----------------------------------------------------------------------------
-# PARTE 2: Módulo de Experiencia de Usuario (estilos_ui.py)
-# Contiene la hoja de estilos UX/UI y las funciones para dibujar tarjetas y tablas.
-# -----------------------------------------------------------------------------
-estilos_ui_content = """# =============================================================================
 # MÓDULO DE DISEÑO UX/UI: estilos_ui.py
-# Objetivo: Entregar una interfaz limpia, luminosa y jerarquizada para Pricing.
+# Objetivo: Centralizar el estilo visual luminoso, las tarjetas KPI y las tablas
+#           para todas las páginas de la aplicación en Streamlit.
 # =============================================================================
 import streamlit as st
 import pandas as pd
 
-# --- PARTE 1: Sistema visual CSS (Tipografía Inter, elevación y micro-interacciones) ---
+# -----------------------------------------------------------------------------
+# PARTE 1: Sistema visual CSS (Tipografía Inter, elevación y pestañas modernas)
+# -----------------------------------------------------------------------------
 def aplicar_estilos_globales():
-    st.markdown('''
+    """Inyecta la hoja de estilos UX/UI para dar acabado profesional a la web."""
+    st.markdown("""
     <style>
-        /* Importamos la fuente Inter para máxima legibilidad en números y finanzas */
+        /* Fuente Inter con números tabulares para alinear precios y porcentajes */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
         html, body, [class*="css"] {
@@ -43,7 +21,7 @@ def aplicar_estilos_globales():
             font-variant-numeric: tabular-nums;
         }
 
-        /* Espaciado superior más limpio para aprovechar mejor la pantalla 16:9 */
+        /* Aprovechamiento panorámico de la pantalla 16:9 */
         .block-container {
             padding-top: 1.8rem !important;
             padding-bottom: 2.5rem !important;
@@ -85,7 +63,7 @@ def aplicar_estilos_globales():
             font-weight: 700;
         }
 
-        /* Tarjetas KPI con elevación sutil y efecto suave al pasar el cursor */
+        /* Tarjetas KPI blancas con elevación sutil */
         .ui-card {
             background: #FFFFFF;
             padding: 16px 20px;
@@ -103,14 +81,14 @@ def aplicar_estilos_globales():
             box-shadow: 0 6px 14px rgba(15, 23, 42, 0.05);
         }
 
-        /* Paleta semántica de superficies para guiar la vista del usuario */
+        /* Variantes semánticas de color para destacar indicadores clave */
         .ui-card-indigo  { background: #EEF2FF; border: 1px solid #C7D2FE; }
         .ui-card-emerald { background: #ECFDF5; border: 1px solid #A7F3D0; }
         .ui-card-blue    { background: #EFF6FF; border: 1px solid #BFDBFE; }
         .ui-card-rose    { background: #FEF2F2; border: 1px solid #FECACA; }
         .ui-card-amber   { background: #FFFBEB; border: 1px solid #FDE68A; }
 
-        /* Jerarquía tipográfica dentro de las tarjetas KPI */
+        /* Jerarquía tipográfica interna de las tarjetas KPI */
         .ui-card-label {
             font-size: 11.5px;
             font-weight: 700;
@@ -146,7 +124,7 @@ def aplicar_estilos_globales():
             border: 1px solid #F1F5F9;
         }
 
-        /* Tarjetas interactivas de selección de estrategia (Cauta, Sugerido, Agresiva) */
+        /* Tarjetas de selección de estrategia (Cauta, Sugerido ★, Agresiva) */
         .strat-card {
             padding: 12px 14px;
             border-radius: 10px;
@@ -155,7 +133,7 @@ def aplicar_estilos_globales():
             transition: all 0.15s ease;
         }
 
-        /* Tabla ejecutiva de Bitácora con diseño editorial limpio */
+        /* Tabla ejecutiva de Bitácora con estética editorial */
         .bitacora-table {
             width: 100%;
             border-collapse: separate;
@@ -192,7 +170,7 @@ def aplicar_estilos_globales():
             background-color: #F8FAFC;
         }
 
-        /* Estilo moderno para la barra de pestañas (Tabs) */
+        /* Barra de pestañas (Tabs) tipo control segmentado moderno */
         div[data-baseweb="tab-list"] {
             gap: 8px;
             background-color: #F1F5F9;
@@ -214,12 +192,15 @@ def aplicar_estilos_globales():
             box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
         }
     </style>
-    ''', unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 
-# --- PARTE 2: Componente de Cabecera Superior ---
+# -----------------------------------------------------------------------------
+# PARTE 2: Componente de Cabecera Superior
+# -----------------------------------------------------------------------------
 def renderizar_cabecera(titulo: str, subtitulo: str, texto_insignia: str = "9 Capas Activas"):
-    html = f'''
+    """Dibuja el encabezado principal de la página con insignia lateral."""
+    html = f"""
     <div class="ux-header">
         <div>
             <h1 class="ux-header-title">{titulo}</h1>
@@ -227,12 +208,15 @@ def renderizar_cabecera(titulo: str, subtitulo: str, texto_insignia: str = "9 Ca
         </div>
         <div class="ux-badge-pill">{texto_insignia}</div>
     </div>
-    '''
+    """
     st.markdown(html, unsafe_allow_html=True)
 
 
-# --- PARTE 3: Componente de Tarjeta KPI Reutilizable ---
+# -----------------------------------------------------------------------------
+# PARTE 3: Componente de Tarjeta KPI Reutilizable
+# -----------------------------------------------------------------------------
 def tarjeta_kpi(titulo: str, valor: str, subtitulo: str = "", variante: str = "blanca", color_valor: str = "#0F172A", color_sub: str = "#64748B"):
+    """Dibuja una tarjeta KPI estilizada con soporte para 6 variantes de color."""
     clases_variante = {
         "blanca": "ui-card",
         "indigo": "ui-card ui-card-indigo",
@@ -242,18 +226,21 @@ def tarjeta_kpi(titulo: str, valor: str, subtitulo: str = "", variante: str = "b
         "ambar": "ui-card ui-card-amber"
     }
     clase = clases_variante.get(variante, "ui-card")
-    html = f'''
+    html = f"""
     <div class="{clase}">
         <div class="ui-card-label">{titulo}</div>
         <div class="ui-card-value" style="color: {color_valor};">{valor}</div>
         <div class="ui-card-sub" style="color: {color_sub};">{subtitulo}</div>
     </div>
-    '''
+    """
     st.markdown(html, unsafe_allow_html=True)
 
 
-# --- PARTE 4: Renderizador de Tabla Bitácora con estética limpia ---
+# -----------------------------------------------------------------------------
+# PARTE 4: Renderizador de Tabla Bitácora con estética limpia
+# -----------------------------------------------------------------------------
 def renderizar_tabla_bitacora(df_filtrado: pd.DataFrame) -> str:
+    """Construye la tabla HTML con la explicación mes a mes de las 9 capas."""
     html = "<table class='bitacora-table'><thead><tr>"
     html += "<th>Mes</th><th>Costo Adquisición</th><th>Precio Cobrado</th>"
     html += "<th>Precio Sugerido Motor</th><th>Margen Proyectado</th><th>Diagnóstico del Tribunal (9 Capas)</th>"
@@ -275,31 +262,3 @@ def renderizar_tabla_bitacora(df_filtrado: pd.DataFrame) -> str:
 
     html += "</tbody></table>"
     return html
-"""
-
-# -----------------------------------------------------------------------------
-# PARTE 3: Publicación de la base de diseño en GitHub
-# -----------------------------------------------------------------------------
-try:
-    GITHUB_TOKEN = userdata.get('GITHUB_TOKEN')
-    REPO_NAME = "Jorge-Alamos/App_Fuga_Margen_Test"
-
-    auth = Auth.Token(GITHUB_TOKEN)
-    repo = Github(auth=auth).get_repo(REPO_NAME)
-
-    archivos_paso_1 = {
-        ".streamlit/config.toml": config_toml_content,
-        "estilos_ui.py": estilos_ui_content
-    }
-
-    for ruta_gh, contenido in archivos_paso_1.items():
-        try:
-            actual = repo.get_contents(ruta_gh)
-            repo.update_file(actual.path, f"🎨 Diseño UX/UI base: {ruta_gh}", contenido, actual.sha)
-            print(f"✅ Actualizado en GitHub: {ruta_gh}")
-        except Exception:
-            repo.create_file(ruta_gh, f"🎨 Creación diseño UX/UI base: {ruta_gh}", contenido)
-            print(f"✅ Creado en GitHub: {ruta_gh}")
-
-except Exception as e:
-    print(f"❌ Error al subir archivos del Paso 1: {e}")
