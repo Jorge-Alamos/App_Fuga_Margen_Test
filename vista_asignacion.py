@@ -1,7 +1,7 @@
 # =============================================================================
-# MÓDULO PÁGINA 2: vista_asignacion.py
-# Objetivo: Desplegar la Interfaz para Asignación de Precios (t+1) con diseño
-#           amplio, descongestionado y con márgenes extendidos.
+# MÓDULO PÁGINA 3: vista_asignacion.py
+# Objetivo: Codificar exclusivamente la Pestaña 3 (Asignación de Precios t+1)
+#           destacando la casilla de Precio Manual como acción principal.
 # =============================================================================
 import streamlit as st
 import pandas as pd
@@ -57,7 +57,6 @@ def crear_grafico_historico_y_t1(df_trazabilidad: pd.DataFrame, row_dec: pd.Seri
 
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-    # 1. Barras celestes de ventas históricas
     fig.add_trace(
         go.Bar(
             x=df_real['Mes_Str'], y=df_real['Ctdad_Ordenada'],
@@ -66,7 +65,6 @@ def crear_grafico_historico_y_t1(df_trazabilidad: pd.DataFrame, row_dec: pd.Seri
         secondary_y=True
     )
 
-    # 2. Línea punteada de Costo de Adquisición
     x_costo = df_real['Mes_Str'].tolist() + [mes_t1_str]
     y_costo = df_real['Costo_Unitario'].tolist() + [costo_t1]
     fig.add_trace(
@@ -79,7 +77,6 @@ def crear_grafico_historico_y_t1(df_trazabilidad: pd.DataFrame, row_dec: pd.Seri
         secondary_y=False
     )
 
-    # 3. Línea discontinua de Precio Cobrado en mostrador
     fig.add_trace(
         go.Scatter(
             x=df_real['Mes_Str'], y=df_real['Precio_Unitario'],
@@ -90,7 +87,6 @@ def crear_grafico_historico_y_t1(df_trazabilidad: pd.DataFrame, row_dec: pd.Seri
         secondary_y=False
     )
 
-    # 4. Línea azul sólida de Precio Sugerido histórico
     fig.add_trace(
         go.Scatter(
             x=df_real['Mes_Str'], y=df_real[col_precio_motor],
@@ -102,7 +98,6 @@ def crear_grafico_historico_y_t1(df_trazabilidad: pd.DataFrame, row_dec: pd.Seri
         secondary_y=False
     )
 
-    # 5. Tramo punteado hacia el Mes Entrante (t+1) rematado en Estrella ★
     if not df_real.empty:
         x_tramo = [df_real['Mes_Str'].iloc[-1], mes_t1_str]
         y_tramo = [float(df_real[col_precio_motor].iloc[-1]), float(precio_activo)]
@@ -135,10 +130,10 @@ def crear_grafico_historico_y_t1(df_trazabilidad: pd.DataFrame, row_dec: pd.Seri
 
 
 # -----------------------------------------------------------------------------
-# PARTE 3: Renderizador Principal de la Interfaz de Asignación de Precios
+# PARTE 3: Renderizador Principal de la Pestaña 3 (Asignación de Precios)
 # -----------------------------------------------------------------------------
 def renderizar_vista_asignacion(df_trazabilidad: pd.DataFrame, df_decision: pd.DataFrame):
-    """Construye la pantalla de decisión con espaciado amplio en 4 bloques claros."""
+    """Construye la pantalla de decisión destacando el ingreso de Precio Manual."""
     # --- SUBPARTE 3.1: Memoria de sesión y barra selectora de SKU ---
     if 'confirmados_pos' not in st.session_state:
         st.session_state.confirmados_pos = {}
@@ -185,7 +180,7 @@ def renderizar_vista_asignacion(df_trazabilidad: pd.DataFrame, df_decision: pd.D
     p_actual = float(row['KPI_Precio_Actual'])
     m_cat = float(row.get('Margen_Teorico_Categoria_Pct', 25.0))
 
-    # --- SUBPARTE 3.2: Fila Superior de 5 Tarjetas KPI con separación amplia ---
+    # --- SUBPARTE 3.2: Fila Superior de 5 Tarjetas KPI ---
     k1, k2, k3, k4, k5 = st.columns(5, gap="medium")
     with k1:
         flecha = "▲" if row['KPI_Var_Costo_Pct'] >= 0 else "▼"
@@ -220,7 +215,7 @@ def renderizar_vista_asignacion(df_trazabilidad: pd.DataFrame, df_decision: pd.D
 
     st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
 
-    # --- SUBPARTE 3.3: Estado de la estrategia elegida por el usuario ---
+    # --- SUBPARTE 3.3: Estado de la estrategia y activación automática del Precio Manual ---
     clave_est = f"estrategia_{sku_seleccionado}"
     clave_man = f"manual_{sku_seleccionado}"
 
@@ -228,6 +223,10 @@ def renderizar_vista_asignacion(df_trazabilidad: pd.DataFrame, df_decision: pd.D
         st.session_state[clave_est] = "Sugerido motor ★"
     if clave_man not in st.session_state:
         st.session_state[clave_man] = float(row['Precio_Sugerido'])
+
+    # Si el usuario escribe o ajusta el valor manual, activa automáticamente "✏️ Precio Manual"
+    def activar_modo_manual():
+        st.session_state[clave_est] = "✏️ Precio Manual"
 
     estrategia_activa = st.session_state[clave_est]
     valor_manual = st.session_state[clave_man]
@@ -241,7 +240,7 @@ def renderizar_vista_asignacion(df_trazabilidad: pd.DataFrame, df_decision: pd.D
     else:
         precio_elegido = float(row['Precio_Sugerido'])
 
-    # --- SUBPARTE 3.4: Bloque Central en 2 Columnas Amplias (Gráfico | Expertos) ---
+    # --- SUBPARTE 3.4: Bloque Central en 2 Columnas (Gráfico | Expertos) ---
     col_grafico, col_expertos = st.columns([5.6, 4.4], gap="large")
 
     with col_grafico:
@@ -284,19 +283,19 @@ def renderizar_vista_asignacion(df_trazabilidad: pd.DataFrame, df_decision: pd.D
 
     st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
 
-    # --- SUBPARTE 3.5: Panel Inferior Descongestionado (2 Filas Amplias) ---
+    # --- SUBPARTE 3.5: Panel Inferior con Casilla de Precio Manual Ampliada y Resaltada ---
     with st.container(border=True):
         st.markdown("<div style='font-size:17px; font-weight:800; color:#0F172A; margin-bottom:10px;'>Asignar Precio para el Mes Entrante</div>", unsafe_allow_html=True)
 
-        # Fila A dentro del panel: Selector y las 4 Tarjetas a ancho completo
         opcion_sel = st.radio(
-            "Seleccione la estrategia comercial a aplicar:",
+            "Seleccione una estrategia sugerida o digite un precio manual:",
             options=["Estrategia cauta", "Sugerido motor ★", "Estrategia agresiva", "✏️ Precio Manual"],
             horizontal=True,
             key=clave_est
         )
 
-        t1, t2, t3, t4 = st.columns(4, gap="medium")
+        # La columna t4 (Precio Manual) recibe un 50% más de ancho [1, 1, 1, 1.55]
+        t1, t2, t3, t4 = st.columns([1.0, 1.0, 1.0, 1.55], gap="medium")
         def estilo_borde(op):
             return "border:2px solid #4F46E5; background:#EEF2FF;" if opcion_sel == op else "border:1px solid #CBD5E1; background:#FFFFFF;"
 
@@ -325,16 +324,26 @@ def renderizar_vista_asignacion(df_trazabilidad: pd.DataFrame, df_decision: pd.D
             </div>""", unsafe_allow_html=True)
 
         with t4:
+            # Contenedor resaltado para la acción principal del usuario
+            borde_manual = "border: 2.5px solid #4F46E5; background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);" if opcion_sel == "✏️ Precio Manual" else "border: 2px dashed #6366F1; background: #F5F7FF;"
+            st.markdown(
+                f"<div style='{borde_manual} padding: 10px 14px 4px 14px; border-radius: 12px; margin-bottom: 4px;'>"
+                f"<div style='font-size:11.5px; font-weight:800; color:#4F46E5; text-transform:uppercase; letter-spacing:0.5px;'>⚡ Acción del Usuario — Digitar Precio Manual</div>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
             st.number_input(
-                "✏️ Ingresar Precio Manual ($ CLP):",
+                "✏️ Ingrese el Precio Manual ($ CLP):",
                 min_value=0.0,
                 step=100.0,
-                key=clave_man
+                key=clave_man,
+                on_change=activar_modo_manual,
+                label_visibility="collapsed"
             )
 
         st.markdown("<hr style='border:none; border-top:1px solid #E2E8F0; margin:16px 0;'>", unsafe_allow_html=True)
 
-        # Fila B dentro del panel: Validación, Nuevo Margen y Botón de Confirmación en 3 columnas amplias
+        # Fila B: Validación, Nuevo Margen y Botón de Confirmación
         eval_vivo = evaluar_regla_en_vivo(precio_elegido, costo, piso, m_cat)
         nuevo_margen = eval_vivo["Margen_Pct"]
         nueva_ganancia = eval_vivo["Ganancia_Caja"]
